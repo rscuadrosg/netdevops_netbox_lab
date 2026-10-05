@@ -1,0 +1,13 @@
+{
+  "name": "netdevops-lab",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb"
+  },
+  "forwardPorts": [8000],
+  "postCreateCommand": "bash -c \"$(curl -sL https://get.containerlab.dev)\" && pip install ansible pynetbox ansible-lint yamllint && ansible-galaxy collection install netbox.netbox nokia.srlinux"
+}
