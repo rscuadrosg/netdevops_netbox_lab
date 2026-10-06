@@ -1,0 +1,228 @@
+---
+# Load the fabric source of truth (data/fabric.yml) into NetBox.
+#
+# Idempotent: safe to run many times. Objects that already match are left
+# untouched; changed values in fabric.yml are updated in NetBox.
+#
+# Run from the repo root:
+#   ansible-playbook playbooks/netbox_populate.yml
+
+- name: Populate NetBox from data/fabric.yml
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars_files:
+    - ../data/fabric.yml
+
+  vars:
+    netbox_url: http://localhost:8000
+    netbox_token: "{{ lookup('ansible.builtin.env', 'NETBOX_TOKEN') }}"
+
+  # Every NetBox module gets the same URL and token
+  module_defaults:
+    netbox.netbox.netbox_site: &netbox_auth
+      netbox_url: "{{ netbox_url }}"
+      netbox_token: "{{ netbox_token }}"
+    netbox.netbox.netbox_manufacturer: *netbox_auth
+    netbox.netbox.netbox_device_type: *netbox_auth
+    netbox.netbox.netbox_platform: *netbox_auth
+    netbox.netbox.netbox_device_role: *netbox_auth
+    netbox.netbox.netbox_rir: *netbox_auth
+    netbox.netbox.netbox_asn: *netbox_auth
+    netbox.netbox.netbox_custom_field: *netbox_auth
+    netbox.netbox.netbox_device: *netbox_auth
+    netbox.netbox.netbox_device_interface: *netbox_auth
+    netbox.netbox.netbox_ip_address: *netbox_auth
+    netbox.netbox.netbox_cable: *netbox_auth
+
+  tasks:
+    # --- Organization and device catalog -----------------------------------
+
+    - name: Create site
+      netbox.netbox.netbox_site:
+        data:
+          name: "{{ site.name }}"
+          slug: "{{ site.slug }}"
+          status: active
+
+    - name: Create manufacturer
+      netbox.netbox.netbox_manufacturer:
+        data:
+          name: "{{ manufacturer.name }}"
+          slug: "{{ manufacturer.slug }}"
+
+    - name: Create device type
+      netbox.netbox.netbox_device_type:
+        data:
+          model: "{{ device_type.model }}"
+          slug: "{{ device_type.slug }}"
+          manufacturer: "{{ manufacturer.slug }}"
+
+    - name: Create platform
+      netbox.netbox.netbox_platform:
+        data:
+          name: "{{ platform.name }}"
+          slug: "{{ platform.slug }}"
+          manufacturer: "{{ manufacturer.slug }}"
+
+    - name: Create device roles
+      netbox.netbox.netbox_device_role:
+        data:
+          name: "{{ item.name }}"
+          slug: "{{ item.slug }}"
+          color: "{{ item.color }}"
+      loop: "{{ device_roles }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    # --- BGP numbering -----------------------------------------------------
+
+    - name: Create private RIR
+      netbox.netbox.netbox_rir:
+        data:
+          name: "{{ rir.name }}"
+          slug: "{{ rir.slug }}"
+          is_private: true
+
+    - name: Register ASNs in IPAM
+      netbox.netbox.netbox_asn:
+        data:
+          asn: "{{ item.asn }}"
+          rir: "{{ rir.slug }}"
+          description: "{{ item.name }}"
+      loop: "{{ devices }}"
+      loop_control:
+        label: "{{ item.name }} AS{{ item.asn }}"
+
+    - name: Create bgp_asn custom field on devices
+      netbox.netbox.netbox_custom_field:
+        data:
+          name: bgp_asn
+          label: BGP ASN
+          type: integer
+          object_types:
+            - dcim.device
+
+    # --- Devices -----------------------------------------------------------
+
+    - name: Create devices
+      netbox.netbox.netbox_device:
+        data:
+          name: "{{ item.name }}"
+          device_type: "{{ device_type.slug }}"
+          role: "{{ item.role }}"
+          site: "{{ site.slug }}"
+          platform: "{{ platform.slug }}"
+          status: active
+          custom_fields:
+            bgp_asn: "{{ item.asn }}"
+      loop: "{{ devices }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    # --- Interfaces --------------------------------------------------------
+
+    - name: Create management interfaces (mgmt0)
+      netbox.netbox.netbox_device_interface:
+        data:
+          device: "{{ item.name }}"
+          name: mgmt0
+          type: 1000base-t
+          mgmt_only: true
+      loop: "{{ devices }}"
+      loop_control:
+        label: "{{ item.name }} mgmt0"
+
+    - name: Create loopback interfaces (system0)
+      netbox.netbox.netbox_device_interface:
+        data:
+          device: "{{ item.name }}"
+          name: system0
+          type: virtual
+          description: loopback, BGP router-id
+      loop: "{{ devices }}"
+      loop_control:
+        label: "{{ item.name }} system0"
+
+    # Ports 1-48 are 25G SFP28, ports 49+ are 100G QSFP28 on the 7220 IXR-D2L
+    - name: Create fabric interfaces
+      netbox.netbox.netbox_device_interface:
+        data:
+          device: "{{ item.0.name }}"
+          name: "{{ item.1.name }}"
+          type: >-
+            {{ '100gbase-x-qsfp28'
+               if (item.1.name.split('/')[1] | int) >= 49
+               else '25gbase-x-sfp28' }}
+          description: "{{ item.1.description }}"
+      loop: "{{ devices | subelements('interfaces') }}"
+      loop_control:
+        label: "{{ item.0.name }} {{ item.1.name }}"
+
+    # --- IP addresses ------------------------------------------------------
+
+    - name: Assign management IPs
+      netbox.netbox.netbox_ip_address:
+        data:
+          address: "{{ item.mgmt_ip }}"
+          status: active
+          assigned_object:
+            device: "{{ item.name }}"
+            name: mgmt0
+      loop: "{{ devices }}"
+      loop_control:
+        label: "{{ item.name }} {{ item.mgmt_ip }}"
+
+    - name: Assign loopback IPs
+      netbox.netbox.netbox_ip_address:
+        data:
+          address: "{{ item.loopback_ip }}"
+          status: active
+          role: loopback
+          assigned_object:
+            device: "{{ item.name }}"
+            name: system0
+      loop: "{{ devices }}"
+      loop_control:
+        label: "{{ item.name }} {{ item.loopback_ip }}"
+
+    - name: Assign fabric link IPs
+      netbox.netbox.netbox_ip_address:
+        data:
+          address: "{{ item.1.ip }}"
+          status: active
+          assigned_object:
+            device: "{{ item.0.name }}"
+            name: "{{ item.1.name }}"
+      loop: "{{ devices | subelements('interfaces') }}"
+      loop_control:
+        label: "{{ item.0.name }} {{ item.1.name }} {{ item.1.ip }}"
+
+    # Ansible reaches each router through its primary IP (Phase 5 inventory)
+    - name: Set management IP as device primary IPv4
+      netbox.netbox.netbox_device:
+        data:
+          name: "{{ item.name }}"
+          primary_ip4: "{{ item.mgmt_ip }}"
+      loop: "{{ devices }}"
+      loop_control:
+        label: "{{ item.name }} {{ item.mgmt_ip }}"
+
+    # --- Cabling -----------------------------------------------------------
+
+    - name: Create cables
+      netbox.netbox.netbox_cable:
+        data:
+          termination_a_type: dcim.interface
+          termination_a:
+            device: "{{ item.a.device }}"
+            name: "{{ item.a.interface }}"
+          termination_b_type: dcim.interface
+          termination_b:
+            device: "{{ item.b.device }}"
+            name: "{{ item.b.interface }}"
+          status: connected
+      loop: "{{ cables }}"
+      loop_control:
+        label: "{{ item.a.device }} <-> {{ item.b.device }}"
