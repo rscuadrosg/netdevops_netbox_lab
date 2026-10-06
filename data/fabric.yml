@@ -1,0 +1,81 @@
+# Source of truth as code: the intended state of the lab fabric.
+#
+# An Ansible playbook reads this file and creates every object in NetBox.
+# To change the network, edit this file and re-run the playbook; never
+# edit NetBox by hand.
+#
+# Addressing plan
+#   Management   172.20.20.0/24   (Containerlab mgmt, pinned in lab.clab.yml)
+#   Loopbacks    10.0.0.0/24      (/32 per device, used as BGP router-id)
+#   Fabric links 10.1.0.0/16      (/31 per spine-leaf link)
+#   ASNs         65100 spine, 6510x leafs (private range, eBGP underlay)
+
+---
+site:
+  name: DC1
+  slug: dc1
+
+manufacturer:
+  name: Nokia
+  slug: nokia
+
+device_type:
+  model: 7220 IXR-D2L
+  slug: 7220-ixr-d2l
+
+platform:
+  name: SR Linux
+  slug: srlinux
+
+device_roles:
+  - name: Spine
+    slug: spine
+    color: "2196f3"
+  - name: Leaf
+    slug: leaf
+    color: "4caf50"
+
+rir:
+  name: Private
+  slug: private
+
+devices:
+  - name: spine1
+    role: spine
+    asn: 65100
+    mgmt_ip: 172.20.20.4/24
+    loopback_ip: 10.0.0.1/32
+    interfaces:
+      - name: ethernet-1/1
+        ip: 10.1.1.0/31
+        description: to leaf1 ethernet-1/49
+      - name: ethernet-1/2
+        ip: 10.1.2.0/31
+        description: to leaf2 ethernet-1/49
+
+  - name: leaf1
+    role: leaf
+    asn: 65101
+    mgmt_ip: 172.20.20.2/24
+    loopback_ip: 10.0.0.11/32
+    interfaces:
+      - name: ethernet-1/49
+        ip: 10.1.1.1/31
+        description: to spine1 ethernet-1/1
+
+  - name: leaf2
+    role: leaf
+    asn: 65102
+    mgmt_ip: 172.20.20.3/24
+    loopback_ip: 10.0.0.12/32
+    interfaces:
+      - name: ethernet-1/49
+        ip: 10.1.2.1/31
+        description: to spine1 ethernet-1/2
+
+# Physical cabling, must match the links in lab.clab.yml
+cables:
+  - a: {device: spine1, interface: ethernet-1/1}
+    b: {device: leaf1, interface: ethernet-1/49}
+  - a: {device: spine1, interface: ethernet-1/2}
+    b: {device: leaf2, interface: ethernet-1/49}

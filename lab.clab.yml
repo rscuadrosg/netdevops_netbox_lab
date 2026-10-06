@@ -13,6 +13,7 @@
 # Destroy:  sudo containerlab destroy -t lab.clab.yml
 # Access:   ssh admin@clab-netdevops-spine1
 
+---
 name: netdevops
 
 topology:
@@ -21,13 +22,17 @@ topology:
     nokia_srlinux:
       image: ghcr.io/nokia/srlinux:latest
 
+  # Management IPs are pinned so they always match data/fabric.yml
   nodes:
     spine1:
       kind: nokia_srlinux
+      mgmt-ipv4: 172.20.20.4
     leaf1:
       kind: nokia_srlinux
+      mgmt-ipv4: 172.20.20.2
     leaf2:
       kind: nokia_srlinux
+      mgmt-ipv4: 172.20.20.3
 
   # Point-to-point fabric links (spine downlinks to leaf uplinks)
   links:

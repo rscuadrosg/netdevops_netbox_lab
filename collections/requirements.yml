@@ -1,0 +1,9 @@
+---
+# Ansible collections this project depends on.
+# Install with:
+#   ansible-galaxy collection install -r collections/requirements.yml
+collections:
+  - name: netbox.netbox    # NetBox modules and dynamic inventory plugin
+    version: ">=3.23.0"
+  - name: nokia.srlinux    # JSON-RPC connection and modules for SR Linux
+    version: ">=1.1.1"
