@@ -1,6 +1,22 @@
+# Containerlab topology for the lab: 1 spine + 2 leaf Nokia SR Linux routers.
+#
+# This file is declarative: it only defines which devices exist and how they
+# are cabled. The routers boot with factory-default config (no IPs, no BGP).
+# Intended config lives in NetBox and is pushed by Ansible.
+#
+#              spine1
+#        e1-1 /      \ e1-2
+#      e1-49 /        \ e1-49
+#         leaf1      leaf2
+#
+# Deploy:   sudo containerlab deploy -t lab.clab.yml
+# Destroy:  sudo containerlab destroy -t lab.clab.yml
+# Access:   ssh admin@clab-netdevops-spine1
+
 name: netdevops
 
 topology:
+  # Default image for every SR Linux node (free public image)
   kinds:
     nokia_srlinux:
       image: ghcr.io/nokia/srlinux:latest
@@ -13,6 +29,7 @@ topology:
     leaf2:
       kind: nokia_srlinux
 
+  # Point-to-point fabric links (spine downlinks to leaf uplinks)
   links:
     - endpoints: ["spine1:e1-1", "leaf1:e1-49"]
     - endpoints: ["spine1:e1-2", "leaf2:e1-49"]
