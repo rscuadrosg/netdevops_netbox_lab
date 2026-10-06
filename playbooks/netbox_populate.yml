@@ -111,7 +111,7 @@
         data:
           name: "{{ item.name }}"
           device_type: "{{ device_type.slug }}"
-          role: "{{ item.role }}"
+          device_role: "{{ item.role }}"
           site: "{{ site.slug }}"
           platform: "{{ platform.slug }}"
           status: active
@@ -179,7 +179,7 @@
         data:
           address: "{{ item.loopback_ip }}"
           status: active
-          role: loopback
+          role: Loopback
           assigned_object:
             device: "{{ item.name }}"
             name: system0
