@@ -1,0 +1,18 @@
+### IGNORE FILETYPES AND FILES TO INTERACT WITH GIT
+
+# NetBox is cloned outside the repo, ignore it just in case
+netbox-docker/
+
+# Directories created by Containerlab on deploy
+clab-*/
+.lab.clab.yml.bak
+
+# Secrets
+.env
+*.token
+
+# Python / Ansible
+__pycache__/
+.venv/
+venv/
+*.retry
