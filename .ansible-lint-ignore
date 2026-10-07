@@ -1,0 +1,5 @@
+# Accepted ansible-lint findings, one "<file> <rule>" per line.
+#
+# netbox_url and netbox_token are passed through module_defaults at play
+# level, which ansible-lint does not resolve when it checks each task.
+playbooks/netbox_populate.yml args[module]

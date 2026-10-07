@@ -11,4 +11,5 @@ ansible_httpapi_validate_certs: false
 ansible_user: admin
 # Containerlab factory password; override it with the SRL_PASSWORD env var
 ansible_password: >-
-  {{ lookup('ansible.builtin.env', 'SRL_PASSWORD') | default('NokiaSrl1!', true) }}
+  {{ lookup('ansible.builtin.env', 'SRL_PASSWORD')
+     | default('NokiaSrl1!', true) }}
