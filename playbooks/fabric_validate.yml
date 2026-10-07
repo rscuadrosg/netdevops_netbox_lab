@@ -1,0 +1,47 @@
+---
+# Validate the running fabric against the intent stored in NetBox.
+#
+# 1. Builds the EXPECTED state from NetBox (vendor-neutral).
+# 2. Reads the ACTUAL state from each device (playbooks/platforms/
+#    <platform>_validate.yml), normalized to the same shape for every vendor.
+# 3. Compares both and fails if anything differs.
+#
+# Run from the repo root:
+#   ansible-playbook playbooks/fabric_validate.yml
+
+- name: Validate the fabric against NetBox
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    # Same logic as the BGP template: every cabled interface is a BGP peer
+    - name: Build expected BGP peers from NetBox cabling
+      ansible.builtin.set_fact:
+        expected_bgp_peers: "{{ expected_bgp_peers | default([]) + [peer_ip] }}"
+      loop: "{{ interfaces | selectattr('connected_endpoints') | list }}"
+      loop_control:
+        loop_var: intf
+        label: "{{ intf.name }}"
+      vars:
+        peer: "{{ intf.connected_endpoints[0] }}"
+        peer_intf: >-
+          {{ hostvars[peer.device.name].interfaces
+             | selectattr('name', 'equalto', peer.name) | first }}
+        peer_ip: "{{ peer_intf.ip_addresses[0].address.split('/')[0] }}"
+
+    # Must set bgp_sessions: {peer_ip: session_state}
+    - name: Read actual state from the device
+      ansible.builtin.include_tasks:
+        file: "platforms/{{ platforms | first }}_validate.yml"
+
+    - name: Assert every expected BGP session is established
+      ansible.builtin.assert:
+        that:
+          - bgp_sessions[peer_ip] | default('missing') == 'established'
+        success_msg: "BGP to {{ peer_ip }} is established"
+        fail_msg: >-
+          BGP to {{ peer_ip }} is
+          {{ bgp_sessions[peer_ip] | default('missing') }}
+      loop: "{{ expected_bgp_peers }}"
+      loop_control:
+        loop_var: peer_ip

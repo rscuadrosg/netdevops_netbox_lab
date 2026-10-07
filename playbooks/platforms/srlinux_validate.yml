@@ -1,0 +1,19 @@
+---
+# How the actual state is read on Nokia SR Linux (JSON-RPC, state datastore).
+#
+# Included by playbooks/fabric_validate.yml. Must set:
+#   bgp_sessions: {peer_ip: session_state}
+
+- name: Get BGP session state
+  nokia.srlinux.get:
+    paths:
+      - path: >-
+          /network-instance[name=default]/protocols/bgp/neighbor[peer-address=*]/session-state
+        datastore: state
+  register: srl_bgp
+
+- name: Normalize BGP sessions
+  ansible.builtin.set_fact:
+    bgp_sessions: >-
+      {{ srl_bgp.result[0].neighbor | default([])
+         | items2dict(key_name='peer-address', value_name='session-state') }}

@@ -2,7 +2,8 @@
 # Configure the fabric from NetBox data.
 #
 # Single entry point for every vendor: each device runs the task file of its
-# NetBox platform (playbooks/platforms/<platform>.yml). See docs/multi-vendor.md.
+# NetBox platform (playbooks/platforms/<platform>.yml).
+# See docs/multi-vendor.md.
 #
 # Run from the repo root:
 #   ansible-playbook playbooks/fabric_configure.yml --check --diff   # dry run
