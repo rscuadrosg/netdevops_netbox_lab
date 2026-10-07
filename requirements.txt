@@ -1,0 +1,9 @@
+# Python packages this project depends on.
+# Install with:
+#   pip install -r requirements.txt
+
+ansible         # Automation engine that runs the playbooks
+pynetbox        # NetBox API client used by the netbox.netbox collection
+pytz            # Required by the netbox.netbox nb_inventory plugin (timezones)
+ansible-lint    # Linter for Ansible best practices (used in CI)
+yamllint        # Linter for YAML style (used in CI)

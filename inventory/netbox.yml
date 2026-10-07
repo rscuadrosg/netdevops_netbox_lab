@@ -1,0 +1,24 @@
+---
+# Dynamic inventory: Ansible asks NetBox which devices exist instead of
+# reading a hand-written host list. Add a device in data/fabric.yml, run
+# playbooks/netbox_populate.yml, and it shows up here automatically.
+#
+# The API token is read from the NETBOX_TOKEN environment variable
+# (a Codespaces secret), so it never lives in this file.
+#
+# Test with:
+#   ansible-inventory -i inventory/netbox.yml --graph
+
+plugin: netbox.netbox.nb_inventory
+api_endpoint: http://localhost:8000
+validate_certs: false
+
+# Only devices that are active in NetBox
+device_query_filters:
+  - status: active
+
+# Create Ansible groups from these NetBox fields (e.g. device_roles_spine)
+group_by:
+  - sites
+  - device_roles
+  - platforms
