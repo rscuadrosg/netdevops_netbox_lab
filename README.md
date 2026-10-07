@@ -1,4 +1,5 @@
 # netdevops_netbox_lab
+[![Lint](https://github.com/rscuadrosg/netdevops_netbox_lab/actions/workflows/lint.yml/badge.svg)](https://github.com/rscuadrosg/netdevops_netbox_lab/actions/workflows/lint.yml)
 
 NetDevOps lab where **NetBox is the source of truth** and **Ansible** builds
 the network from it: a Nokia SR Linux spine-leaf fabric running in

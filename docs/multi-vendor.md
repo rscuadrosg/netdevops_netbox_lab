@@ -38,8 +38,10 @@ inventory/
     └── platforms_<slug>.yml      # HOW TO CONNECT to that platform
 playbooks/
 ├── fabric_configure.yml          # single entry point, dispatches by platform
+├── fabric_validate.yml           # expected state from NetBox vs actual state
 └── platforms/
-    └── <slug>.yml                # HOW TO APPLY config on that platform
+    ├── <slug>.yml                # HOW TO APPLY config on that platform
+    └── <slug>_validate.yml       # HOW TO READ actual state from that platform
 templates/
 └── <slug>/                       # WHAT TO SEND (template-based platforms only)
     ├── interfaces.j2
@@ -50,6 +52,7 @@ templates/
 |---|---|---|
 | `inventory/group_vars/platforms_<slug>.yml` | How do I connect? | Each vendor uses a different connection plugin, port and credentials. Ansible applies the file automatically to every device in that platform group. |
 | `playbooks/platforms/<slug>.yml` | How do I apply config? | Module names and push methods differ (`nokia.srlinux.config`, `arista.eos.eos_config`, `cisco.meraki.*`...). |
+| `playbooks/platforms/<slug>_validate.yml` | How do I read the actual state? | Each vendor exposes state differently. The file must normalize it to a common shape (`bgp_sessions: {peer_ip: state}`) so `fabric_validate.yml` compares every vendor the same way. |
 | `templates/<slug>/` | What config do I send? | Same intent, different syntax. API-managed platforms don't need this folder. |
 | NetBox (via `data/fabric.yml`) | What should the network look like? | It is **not** per platform: one source of truth for every vendor. |
 
@@ -78,7 +81,8 @@ names above.
 2. Add the collection to `collections/requirements.yml`.
 3. Create `inventory/group_vars/platforms_<slug>.yml` with the connection settings.
    Secrets (passwords, API keys) come from environment variables, never from the file.
-4. Create `playbooks/platforms/<slug>.yml` with the tasks that apply config.
+4. Create `playbooks/platforms/<slug>.yml` with the tasks that apply config,
+   and `playbooks/platforms/<slug>_validate.yml` to read its state.
 5. Template-based only: create `templates/<slug>/` with the Jinja2 templates.
 6. Optional: add a lab node to `lab.clab.yml` if the vendor ships a container
    image (Arista cEOS and Juniper cRPD do; Cisco and Palo Alto need licensed
