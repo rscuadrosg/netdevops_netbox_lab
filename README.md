@@ -205,7 +205,7 @@ playbook fails on any difference. The same check works for any vendor.
 
 ## Roadmap
 
-- Second vendor in the lab (Arista cEOS or Juniper cRPD) using the
+- Second vendor in the lab (Cisco, Juniper, PaloAlto, Meraki etc...) using the
   multi-vendor layout.
 - Streaming telemetry with gNMIc, Prometheus and Grafana.
 - Terraform for NetBox intent and a hybrid AWS VPC + site-to-site VPN.
