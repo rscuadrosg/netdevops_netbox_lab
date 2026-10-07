@@ -1,0 +1,57 @@
+{#
+  SR Linux eBGP underlay, rendered per device from NetBox data.
+
+  Output: a YAML list of JSON-RPC "update" operations for nokia.srlinux.config.
+  Input:
+    custom_fields.bgp_asn   local ASN (NetBox custom field)
+    interfaces              system0 IP is the router-id; every cabled interface
+                            becomes a BGP neighbor
+    fabric_loopback_pool    loopback range to advertise (site group_vars)
+
+  Neighbors are derived from NetBox cabling: for each interface with a cable,
+  the peer device and interface come from "connected_endpoints", and the
+  peer's IP and ASN are read from that device's own host variables.
+#}
+{% set loopback = interfaces | selectattr('name', 'equalto', 'system0') | first %}
+{% set fabric_links = interfaces | selectattr('connected_endpoints') | list %}
+# eBGP rejects all routes without a policy (RFC 8212): accept loopbacks only
+- path: /routing-policy
+  value:
+    prefix-set:
+      - name: loopbacks
+        prefix:
+          - ip-prefix: {{ fabric_loopback_pool }}
+            mask-length-range: 32..32
+    policy:
+      - name: loopbacks
+        default-action:
+          policy-result: reject
+        statement:
+          - name: accept-loopbacks
+            match:
+              prefix:
+                prefix-set: loopbacks
+            action:
+              policy-result: accept
+- path: /network-instance[name=default]/protocols/bgp
+  value:
+    admin-state: enable
+    autonomous-system: {{ custom_fields.bgp_asn }}
+    router-id: {{ loopback.ip_addresses[0].address.split('/')[0] }}
+    afi-safi:
+      - afi-safi-name: ipv4-unicast
+        admin-state: enable
+    group:
+      - group-name: underlay
+        import-policy: [loopbacks]
+        export-policy: [loopbacks]
+    neighbor:
+{% for intf in fabric_links %}
+{%   set peer = intf.connected_endpoints[0] %}
+{%   set peer_vars = hostvars[peer.device.name] %}
+{%   set peer_intf = peer_vars.interfaces | selectattr('name', 'equalto', peer.name) | first %}
+      - peer-address: {{ peer_intf.ip_addresses[0].address.split('/')[0] }}
+        peer-as: {{ peer_vars.custom_fields.bgp_asn }}
+        peer-group: underlay
+        description: "{{ peer.device.name }} {{ peer.name }}"
+{% endfor %}

@@ -13,3 +13,13 @@
       {{ lookup('ansible.builtin.template',
                 playbook_dir ~ '/../templates/srlinux/interfaces.j2')
          | from_yaml }}
+
+# Runs after interfaces: BGP neighbors use the fabric link IPs
+- name: Configure eBGP underlay
+  nokia.srlinux.config:
+    update: "{{ srl_bgp_update }}"
+  vars:
+    srl_bgp_update: >-
+      {{ lookup('ansible.builtin.template',
+                playbook_dir ~ '/../templates/srlinux/bgp.j2')
+         | from_yaml }}

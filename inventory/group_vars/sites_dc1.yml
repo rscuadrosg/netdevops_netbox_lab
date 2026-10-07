@@ -1,0 +1,6 @@
+---
+# Site-wide data for DC1 (NetBox site "dc1"), shared by every device there.
+# Device-specific values (IPs, ASNs) live in NetBox, not here.
+
+# Loopback range advertised in the eBGP underlay (see data/fabric.yml)
+fabric_loopback_pool: 10.0.0.0/24

@@ -11,7 +11,7 @@ by device or by site:
 templates/
 ├── srlinux/            # Nokia SR Linux
 │   ├── interfaces.j2   # interfaces, subinterfaces, IPv4 addresses
-│   └── bgp.j2          # eBGP underlay (planned)
+│   └── bgp.j2          # routing policy and eBGP underlay
 └── <platform>/         # one folder per vendor platform (see docs/multi-vendor.md)
 ```
 

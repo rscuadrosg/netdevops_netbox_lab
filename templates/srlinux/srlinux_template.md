@@ -29,7 +29,7 @@ running config, so anything the template doesn't mention is left untouched.
 | File | Configures | Input (host variables) |
 |---|---|---|
 | `interfaces.j2` | Interfaces, subinterface `.0`, IPv4 addresses, membership in the `default` network-instance | `interfaces` (with `ip_addresses`) |
-| `bgp.j2` | eBGP underlay (planned) | `custom_fields.bgp_asn`, neighbor IPs |
+| `bgp.j2` | Loopback routing policy and eBGP underlay | `custom_fields.bgp_asn`, `interfaces` (with `connected_endpoints`), `fabric_loopback_pool` |
 
 ### interfaces.j2
 
@@ -54,6 +54,25 @@ cut Ansible off.
 | Subinterface `.0` | Logical interface that carries the IP. SR Linux puts IPs on subinterfaces, never directly on the port |
 | Network-instance `default` | The main routing table (like the global VRF) |
 | Network-instance `mgmt` | Separate routing table for management, created by Containerlab |
+
+### bgp.j2
+
+1. **Routing policy `loopbacks`**: accepts only /32 routes inside
+   `fabric_loopback_pool` (site data in `inventory/group_vars/sites_dc1.yml`)
+   and rejects everything else. SR Linux applies RFC 8212 to eBGP: without
+   import and export policies, no routes are exchanged.
+2. **BGP** in the `default` network-instance, with the device ASN
+   (`custom_fields.bgp_asn`) and the `system0` IP as router-id.
+3. **Neighbors derived from NetBox cabling**: for every interface with a
+   cable, `connected_endpoints` gives the peer device and interface. The
+   template reads the peer's interface IP and its `bgp_asn` from that device's
+   host variables (`hostvars`), so no neighbor is written by hand. Changing
+   the cables in `data/fabric.yml` changes the BGP neighbors automatically.
+
+Result: each leaf learns the other leaf's loopback through the spine. From
+leaf1, `ping 10.0.0.12 network-instance default -I 10.0.0.11` replies with
+TTL 63: one hop through spine1.
+
 
 ## Data source
 
