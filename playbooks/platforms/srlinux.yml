@@ -1,0 +1,15 @@
+---
+# How configuration is applied on Nokia SR Linux (JSON-RPC).
+#
+# Each template under templates/srlinux/ renders a list of "update" operations
+# that nokia.srlinux.config merges into the running config.
+# Included by playbooks/fabric_configure.yml for devices on platform "srlinux".
+
+- name: Configure interfaces and IPv4 addresses
+  nokia.srlinux.config:
+    update: "{{ srl_interfaces_update }}"
+  vars:
+    srl_interfaces_update: >-
+      {{ lookup('ansible.builtin.template',
+                playbook_dir ~ '/../templates/srlinux/interfaces.j2')
+         | from_yaml }}
