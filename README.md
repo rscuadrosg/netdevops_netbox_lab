@@ -205,6 +205,8 @@ playbook fails on any difference. The same check works for any vendor.
 
 ## Roadmap
 
+- add sample CIDR to show organization
+- add sample region/sites organization to show scale network management
 - Second vendor in the lab (Cisco, Juniper, PaloAlto, Meraki etc...) using the
   multi-vendor layout.
 - Streaming telemetry with gNMIc, Prometheus and Grafana.
