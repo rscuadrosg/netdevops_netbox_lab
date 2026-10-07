@@ -1,0 +1,36 @@
+{#
+  SR Linux interfaces and IPv4 addresses, rendered per device from NetBox data.
+
+  Output: a YAML list of JSON-RPC "update" operations for nokia.srlinux.config.
+  Input:  the "interfaces" host variable from the NetBox dynamic inventory.
+
+  mgmt0 is skipped: it is managed by Containerlab and lives in the "mgmt"
+  network-instance.
+#}
+{% set routed = interfaces | rejectattr('mgmt_only') | selectattr('ip_addresses') | list %}
+{% for intf in routed %}
+- path: /interface[name={{ intf.name }}]
+  value:
+    admin-state: enable
+{% if intf.description %}
+    description: "{{ intf.description }}"
+{% endif %}
+    subinterface:
+      - index: 0
+        admin-state: enable
+        ipv4:
+          admin-state: enable
+          address:
+{% for ip in intf.ip_addresses %}
+            - ip-prefix: {{ ip.address }}
+{% endfor %}
+{% endfor %}
+# Routed subinterfaces must belong to a network-instance to forward traffic
+- path: /network-instance[name=default]
+  value:
+    type: default
+    admin-state: enable
+    interface:
+{% for intf in routed %}
+      - name: {{ intf.name }}.0
+{% endfor %}

@@ -22,3 +22,6 @@ group_by:
   - sites
   - device_roles
   - platforms
+
+# Include each device's interfaces and their IPs (needed by config templates)
+interfaces: true
